@@ -1,0 +1,41 @@
+{
+  "sourceSha256": "82fcf83e48c0085d2037db5e9913748cb594619dc57e84da032e0e33c0cc1ed9",
+  "riggedSha256": "df9ab4e2faae97a6ca255a3c900a93b0fe469542f105e9132226d8c87b24f8e1",
+  "sourceNodeCount": 71,
+  "riggedNodeCount": 77,
+  "meshCount": 40,
+  "meshMaterialAccessorBinaryDataUnchanged": true,
+  "maximumRestMatrixElementError": 4.440892098500626e-16,
+  "joint15DegreeTests": [
+    {
+      "joint": 1,
+      "upstream_and_table_fixed": true,
+      "downstream_and_gripper_inherit": true
+    },
+    {
+      "joint": 2,
+      "upstream_and_table_fixed": true,
+      "downstream_and_gripper_inherit": true
+    },
+    {
+      "joint": 3,
+      "upstream_and_table_fixed": true,
+      "downstream_and_gripper_inherit": true
+    },
+    {
+      "joint": 4,
+      "upstream_and_table_fixed": true,
+      "downstream_and_gripper_inherit": true
+    },
+    {
+      "joint": 5,
+      "upstream_and_table_fixed": true,
+      "downstream_and_gripper_inherit": true
+    },
+    {
+      "joint": 6,
+      "upstream_and_table_fixed": true,
+      "downstream_and_gripper_inherit": true
+    }
+  ]
+}
