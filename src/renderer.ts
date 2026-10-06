@@ -36,7 +36,7 @@ export async function createRenderer(state:RobotState){
  renderer.setAnimationLoop(()=>{controls.update();renderer.render(scene,camera);});
  const gltf=await new GLTFLoader().loadAsync('/robot.glb');
  const model=gltf.scene;
- model.traverse(object=>{if(object instanceof THREE.Mesh){object.castShadow=true;object.receiveShadow=true;}});
+ model.traverse(object=>{if(object instanceof THREE.Mesh){object.castShadow=true;object.receiveShadow=true;const materials=Array.isArray(object.material)?object.material:[object.material];materials.forEach(material=>{if(material instanceof THREE.MeshStandardMaterial)material.emissive.set(0x000000);});}});
  scene.add(model);model.updateMatrixWorld(true);
  const bounds=new THREE.Box3().setFromObject(model);const center=bounds.getCenter(new THREE.Vector3());const size=bounds.getSize(new THREE.Vector3());
  frameHeight=size.y;
