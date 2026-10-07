@@ -2,6 +2,7 @@ import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
 import { setupAppearance } from './appearance';
+import { refineGripper } from './gripper';
 import { RobotState } from './state';
 const AXES=[new THREE.Vector3(1,0,0),new THREE.Vector3(0,0,1),new THREE.Vector3(0,0,-1),new THREE.Vector3(0,-1,0),new THREE.Vector3(0,0,-1),new THREE.Vector3(0,-1,0)];
 export async function createRenderer(state:RobotState){
@@ -18,13 +19,13 @@ export async function createRenderer(state:RobotState){
  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
  const scene=new THREE.Scene();
  const camera=new THREE.OrthographicCamera(-1,1,1,-1,.01,100);
- const controls=new OrbitControls(camera,canvas);controls.enableDamping=true;controls.dampingFactor=.08;controls.enablePan=false;controls.minPolarAngle=.1;controls.maxPolarAngle=Math.PI*.495;controls.rotateSpeed=.65;controls.zoomSpeed=.75;controls.minZoom=.5;controls.maxZoom=2;
+ const controls=new OrbitControls(camera,canvas);controls.enableDamping=true;controls.dampingFactor=.08;controls.enablePan=false;controls.minPolarAngle=.1;controls.maxPolarAngle=Math.PI*.495;controls.rotateSpeed=.65;controls.zoomSpeed=.75;controls.minZoom=.5;controls.maxZoom=3;
  let frameHeight=1.8;
  let lastAspect=0;
  const cameraDirection=new THREE.Vector3(-1,1,1).normalize();
  // Equal camera offsets and orthographic projection give a front isometric view.
  const updateFrustum=()=>{const aspect=viewport.clientWidth/viewport.clientHeight;const halfHeight=frameHeight*.72/Math.min(1,aspect);camera.left=-halfHeight*aspect;camera.right=halfHeight*aspect;camera.top=halfHeight;camera.bottom=-halfHeight;camera.updateProjectionMatrix();};
- const resetCamera=()=>{controls.enableDamping=false;controls.update();camera.zoom=1.2;updateFrustum();camera.position.copy(controls.target).addScaledVector(cameraDirection,frameHeight*3);controls.update();controls.enableDamping=true;};
+ const resetCamera=()=>{controls.enableDamping=false;controls.update();camera.zoom=2;updateFrustum();camera.position.copy(controls.target).addScaledVector(cameraDirection,frameHeight*3);controls.update();controls.enableDamping=true;};
  document.querySelector('#view-reset')!.addEventListener('click',()=>{state.setJoints({0:0,1:0,2:0,3:0,4:0,5:0});resetCamera();});
  let renderFrame=()=>renderer.render(scene,camera);
  let resizeAppearance=(_width:number,_height:number)=>{};
@@ -33,6 +34,7 @@ export async function createRenderer(state:RobotState){
  renderer.setAnimationLoop(()=>{controls.update();renderFrame();});
  const gltf=await new GLTFLoader().loadAsync('/robot.glb');
  const model=gltf.scene;
+ refineGripper(model);
  model.traverse(object=>{if(object instanceof THREE.Mesh){object.castShadow=true;object.receiveShadow=true;const materials=Array.isArray(object.material)?object.material:[object.material];materials.forEach(material=>{if(material instanceof THREE.MeshStandardMaterial){material.emissive.set(0x000000);if(material.name==='Material_5'){material.color.set(0x78b84c);material.roughness=.65;}}});}});
  scene.add(model);model.updateMatrixWorld(true);
  const bounds=new THREE.Box3().setFromObject(model);const center=bounds.getCenter(new THREE.Vector3());const size=bounds.getSize(new THREE.Vector3());
