@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
 import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
-import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+import { setupAppearance } from './appearance';
 import { RobotState } from './state';
 const AXES=[new THREE.Vector3(1,0,0),new THREE.Vector3(0,0,1),new THREE.Vector3(0,0,-1),new THREE.Vector3(0,-1,0),new THREE.Vector3(0,0,-1),new THREE.Vector3(0,-1,0)];
 export async function createRenderer(state:RobotState){
@@ -17,14 +17,6 @@ export async function createRenderer(state:RobotState){
  renderer.shadowMap.enabled=true;
  renderer.shadowMap.type=THREE.PCFSoftShadowMap;
  const scene=new THREE.Scene();
- const pmrem=new THREE.PMREMGenerator(renderer);
- const environment=new RoomEnvironment();
- scene.environment=pmrem.fromScene(environment,.04).texture;
- scene.environmentIntensity=.5;
- environment.dispose();pmrem.dispose();
- scene.add(new THREE.HemisphereLight(0xffffff,0x9aa5b5,.9));
- const key=new THREE.DirectionalLight(0xffffff,2.0);key.position.set(-3,5,2);key.castShadow=true;key.shadow.mapSize.set(1024,1024);key.shadow.camera.left=-2;key.shadow.camera.right=2;key.shadow.camera.top=2;key.shadow.camera.bottom=-2;key.shadow.normalBias=.015;key.shadow.bias=-.0003;scene.add(key);
- const fill=new THREE.DirectionalLight(0xbedbff,.6);fill.position.set(-3,2,-3);scene.add(fill);
  const camera=new THREE.OrthographicCamera(-1,1,1,-1,.01,100);
  const controls=new OrbitControls(camera,canvas);controls.enableDamping=true;controls.dampingFactor=.08;controls.enablePan=false;controls.minPolarAngle=.1;controls.maxPolarAngle=Math.PI*.495;controls.rotateSpeed=.65;controls.zoomSpeed=.75;controls.minZoom=.5;controls.maxZoom=2;
  let frameHeight=1.8;
@@ -34,9 +26,11 @@ export async function createRenderer(state:RobotState){
  const updateFrustum=()=>{const aspect=viewport.clientWidth/viewport.clientHeight;const halfHeight=frameHeight*.72/Math.min(1,aspect);camera.left=-halfHeight*aspect;camera.right=halfHeight*aspect;camera.top=halfHeight;camera.bottom=-halfHeight;camera.updateProjectionMatrix();};
  const resetCamera=()=>{controls.enableDamping=false;controls.update();camera.zoom=1.2;updateFrustum();camera.position.copy(controls.target).addScaledVector(cameraDirection,frameHeight*3);controls.update();controls.enableDamping=true;};
  document.querySelector('#view-reset')!.addEventListener('click',()=>{state.setJoints({0:0,1:0,2:0,3:0,4:0,5:0});resetCamera();});
- const resize=()=>{const width=viewport.clientWidth,height=viewport.clientHeight;if(!width||!height)return;updateFrustum();renderer.setSize(width,height,false);if(lastAspect===0)resetCamera();lastAspect=width/height;};
+ let renderFrame=()=>renderer.render(scene,camera);
+ let resizeAppearance=(_width:number,_height:number)=>{};
+ const resize=()=>{const width=viewport.clientWidth,height=viewport.clientHeight;if(!width||!height)return;updateFrustum();renderer.setSize(width,height,false);resizeAppearance(width,height);if(lastAspect===0)resetCamera();lastAspect=width/height;};
  const observer=new ResizeObserver(resize);observer.observe(viewport);resize();
- renderer.setAnimationLoop(()=>{controls.update();renderer.render(scene,camera);});
+ renderer.setAnimationLoop(()=>{controls.update();renderFrame();});
  const gltf=await new GLTFLoader().loadAsync('/robot.glb');
  const model=gltf.scene;
  model.traverse(object=>{if(object instanceof THREE.Mesh){object.castShadow=true;object.receiveShadow=true;const materials=Array.isArray(object.material)?object.material:[object.material];materials.forEach(material=>{if(material instanceof THREE.MeshStandardMaterial){material.emissive.set(0x000000);if(material.name==='Material_5'){material.color.set(0x78b84c);material.roughness=.65;}}});}});
@@ -47,11 +41,10 @@ export async function createRenderer(state:RobotState){
  const robotBounds=new THREE.Box3().setFromObject(model.getObjectByName('J1_Pivot')!);
  const robotCenter=robotBounds.getCenter(new THREE.Vector3());
  controls.target.copy(robotCenter);
- const floor=new THREE.Mesh(new THREE.PlaneGeometry(200,200),new THREE.ShadowMaterial({color:0x34445a,opacity:.14}));floor.rotation.x=-Math.PI/2;floor.position.set(center.x,bounds.min.y-.001,center.z);floor.receiveShadow=true;scene.add(floor);
- const grid=new THREE.GridHelper(12,48,0xb9c5d0,0xd1d9e1);grid.position.set(center.x,bounds.min.y-.002,center.z);(grid.material as THREE.Material).transparent=true;(grid.material as THREE.Material).opacity=.32;scene.add(grid);
- key.target.position.copy(center);scene.add(key.target);
  const pivots=AXES.map((_,i)=>{const pivot=model.getObjectByName(`J${i+1}_Pivot`);if(!pivot)throw new Error(`Joint ${i+1} is missing from the robot model.`);return pivot;});
  state.subscribe(values=>{values.forEach((value,i)=>pivots[i].quaternion.setFromAxisAngle(AXES[i],THREE.MathUtils.degToRad(value)));model.updateMatrixWorld(true);});
+ const appearance=setupAppearance(scene,model,camera,renderer,bounds);
+ renderFrame=appearance.render;resizeAppearance=appearance.resize;resizeAppearance(viewport.clientWidth,viewport.clientHeight);
  resetCamera();loading.hidden=true;canvas.dataset.loaded='true';
  return {scene,model,pivots,renderer,camera,controls,resize,resetCamera};
 }
