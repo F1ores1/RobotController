@@ -20,18 +20,21 @@ export async function createRenderer(state:RobotState){
  const scene=new THREE.Scene();
  const camera=new THREE.OrthographicCamera(-1,1,1,-1,.01,100);
  const controls=new OrbitControls(camera,canvas);controls.enableDamping=true;controls.dampingFactor=.08;controls.enablePan=false;controls.minPolarAngle=.1;controls.maxPolarAngle=Math.PI*.495;controls.rotateSpeed=.65;controls.zoomSpeed=.75;controls.minZoom=.5;controls.maxZoom=3;
+ let sideView=false; const homeTarget=new THREE.Vector3();
+ const frameListeners=new Set<(dt:number)=>void>();
+ let previousFrame=performance.now();
  let frameHeight=1.8;
  let lastAspect=0;
  const cameraDirection=new THREE.Vector3(-1,1,1).normalize();
  // Equal camera offsets and orthographic projection give a front isometric view.
  const updateFrustum=()=>{const aspect=viewport.clientWidth/viewport.clientHeight;const halfHeight=frameHeight*.72/Math.min(1,aspect);camera.left=-halfHeight*aspect;camera.right=halfHeight*aspect;camera.top=halfHeight;camera.bottom=-halfHeight;camera.updateProjectionMatrix();};
- const resetCamera=()=>{controls.enableDamping=false;controls.update();camera.zoom=2;updateFrustum();camera.position.copy(controls.target).addScaledVector(cameraDirection,frameHeight*3);controls.update();controls.enableDamping=true;};
+ const resetCamera=()=>{controls.enableDamping=false;controls.update();controls.target.copy(homeTarget);camera.zoom=sideView?1:2;updateFrustum();camera.position.copy(controls.target).addScaledVector(cameraDirection,frameHeight*3);controls.update();controls.enableDamping=true;};
  document.querySelector('#view-reset')!.addEventListener('click',()=>{state.setJoints({0:0,1:0,2:0,3:0,4:0,5:0});resetCamera();});
  let renderFrame=()=>renderer.render(scene,camera);
  let resizeAppearance=(_width:number,_height:number)=>{};
  const resize=()=>{const width=viewport.clientWidth,height=viewport.clientHeight;if(!width||!height)return;updateFrustum();renderer.setSize(width,height,false);resizeAppearance(width,height);if(lastAspect===0)resetCamera();lastAspect=width/height;};
  const observer=new ResizeObserver(resize);observer.observe(viewport);resize();
- renderer.setAnimationLoop(()=>{controls.update();renderFrame();});
+ renderer.setAnimationLoop(()=>{const now=performance.now();const dt=Math.min((now-previousFrame)/1000,.1);previousFrame=now;frameListeners.forEach(listener=>listener(dt));controls.update();renderFrame();});
  const gltf=await new GLTFLoader().loadAsync('/robot.glb');
  const model=gltf.scene;
  refineGripper(model);
@@ -42,11 +45,18 @@ export async function createRenderer(state:RobotState){
  // Focus orbit and zoom on the moving robot rather than the table.
  const robotBounds=new THREE.Box3().setFromObject(model.getObjectByName('J1_Pivot')!);
  const robotCenter=robotBounds.getCenter(new THREE.Vector3());
- controls.target.copy(robotCenter);
+ controls.target.copy(robotCenter);homeTarget.copy(robotCenter);
  const pivots=AXES.map((_,i)=>{const pivot=model.getObjectByName(`J${i+1}_Pivot`);if(!pivot)throw new Error(`Joint ${i+1} is missing from the robot model.`);return pivot;});
  state.subscribe(values=>{values.forEach((value,i)=>pivots[i].quaternion.setFromAxisAngle(AXES[i],THREE.MathUtils.degToRad(value)));model.updateMatrixWorld(true);});
  const appearance=setupAppearance(scene,model,camera,renderer,bounds);
  renderFrame=appearance.render;resizeAppearance=appearance.resize;resizeAppearance(viewport.clientWidth,viewport.clientHeight);
  resetCamera();loading.hidden=true;canvas.dataset.loaded='true';
- return {scene,model,pivots,renderer,camera,controls,resize,resetCamera};
+ const setSideView=(enabled:boolean)=>{sideView=enabled;controls.enableRotate=true;controls.enableZoom=true;controls.enablePan=enabled;cameraDirection.set(enabled?.1:-1,enabled?.1:1,1).normalize();controls.target.copy(robotCenter);if(enabled){controls.target.x=model.getObjectByName('J1_Pivot')!.getWorldPosition(new THREE.Vector3()).x-.02;controls.target.y=.72;controls.target.z-=.25;}homeTarget.copy(controls.target);resetCamera();};
+ const onFrame=(listener:(dt:number)=>void)=>{frameListeners.add(listener);return ()=>frameListeners.delete(listener);};
+ return {scene,model,pivots,renderer,camera,controls,resize,resetCamera,setSideView,onFrame};
 }
+
+
+
+
+
