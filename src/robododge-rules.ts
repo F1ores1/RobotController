@@ -1,9 +1,12 @@
 export const GATE_SECONDS = 5;
-export const COURSE = [0, 1, 2, 0, 3, 4] as const;
-export const waveSeconds=(gate:number)=>COURSE[gate]===3?10:GATE_SECONDS;
+export const COURSE = [0, 1, 2, 5, 6, 7, 0, 3, 4] as const;
+export const waveSeconds=(gate:number)=>gate===6||COURSE[gate]===3||COURSE[gate]>=5?10:GATE_SECONDS;
 export const POSES = [
  {name:'Left cutout', axis:3, angle:0}, {name:'Tall cutout', axis:3, angle:90}, {name:'Right cutout', axis:3, angle:180},
  {name:'Base turn +90', axis:1, angle:90}, {name:'Base turn -90', axis:1, angle:-90},
+ {name:'Shoulder forward, wrist down', axis:2, angle:92, elbow:0},
+ {name:'Shoulder back, wrist up', axis:2, angle:-97, elbow:0},
+ {name:'Shoulder and elbow extended', axis:2, angle:82, elbow:79},
 ] as const;
 export type Phase = 'ready' | 'running' | 'paused' | 'won' | 'lost';
 export class DodgeRun {

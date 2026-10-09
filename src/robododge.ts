@@ -2,7 +2,7 @@ import * as THREE from 'three';
 import type { createRenderer } from './renderer';
 import { RobotState } from './state';
 import { COURSE, POSES, waveSeconds, DodgeRun } from './robododge-rules';
-import { waveBoxes, travelAxis, robotTouchesWall } from './robododge-collision';
+import { waveBoxes, travelAxis, robotTouchesWall, RAIL_OFFSET } from './robododge-collision';
 type View = Awaited<ReturnType<typeof createRenderer>>;
 
 export function createRoboLimbo(state:RobotState,view:View){
@@ -19,7 +19,7 @@ export function createRoboLimbo(state:RobotState,view:View){
  const course=new THREE.Group();course.visible=false;view.scene.add(course);
  let matcap:THREE.Texture|null=null;
  view.model.traverse(o=>{if(o instanceof THREE.Mesh&&o.material instanceof THREE.MeshMatcapMaterial)matcap=o.material.matcap;});
- const colors=[0x388fa7,0xd49a43,0x8076bd,0x458ca0,0xb08058];
+ const colors=[0x388fa7,0xd49a43,0x8076bd,0x458ca0,0xb08058,0x52966c,0xb77a9b,0x6e8cba];
  const walls=POSES.map((_,shape)=>{
   const group=new THREE.Group();const boxes=waveBoxes(shape,base);
   const material=new THREE.MeshMatcapMaterial({matcap,color:colors[shape]});
@@ -31,7 +31,7 @@ export function createRoboLimbo(state:RobotState,view:View){
   });course.add(group);return {group,boxes,material,axis:travelAxis(shape)};
  });
  const rails= [new THREE.Group(),new THREE.Group()];rails.forEach(group=>course.add(group));
- for(const offset of [-.94,.94]){
+ for(const offset of [-RAIL_OFFSET,RAIL_OFFSET]){
   const material=new THREE.MeshBasicMaterial({color:0xabbcc8});
   const alongZ=new THREE.Mesh(new THREE.BoxGeometry(.016,.016,2.6),material);alongZ.position.set(base.x+offset,.105,base.z-.35);rails[0].add(alongZ);
   const alongX=new THREE.Mesh(new THREE.BoxGeometry(2.6,.016,.016),material);alongX.position.set(base.x-.35,.105,base.z+offset);rails[1].add(alongX);
@@ -39,7 +39,7 @@ export function createRoboLimbo(state:RobotState,view:View){
  const wallPosition=(remaining:number,axis:'x'|'z')=>base[axis]-1.5+2.3*(1-remaining/waveSeconds(run.gate));
  function positionWall(){
   const current=COURSE[run.gate];
-  rails[0].visible=current<3;rails[1].visible=current>=3;
+  rails[0].visible=travelAxis(current)==='z';rails[1].visible=travelAxis(current)==='x';
   walls.forEach((wall,i)=>{wall.group.visible=i===current&&run.phase!=='won';wall.group.position[wall.axis]=wallPosition(run.remaining,wall.axis);});
  }
  function start(){
@@ -55,7 +55,7 @@ export function createRoboLimbo(state:RobotState,view:View){
  });
  toggle.disabled=false;
  toggle.addEventListener('click',()=>{
-  active=!active;toggle.setAttribute('aria-pressed',String(active));toggle.textContent=active?'Exit RoboLimbo':'RoboLimbo';hud.hidden=!active;course.visible=active;root.classList.toggle('is-dodging',active);
+  active=!active;toggle.setAttribute('aria-pressed',String(active));toggle.querySelector('.limbo-label')!.textContent=active?'Exit RoboLimbo':'RoboLimbo';toggle.setAttribute('aria-label',active?'Exit RoboLimbo':'Play RoboLimbo');hud.hidden=!active;course.visible=active;root.classList.toggle('is-dodging',active);
   if(active){savedPose=state.values;view.setSideView(true);start();}
   else{view.setSideView(false);state.setJoints(Object.fromEntries(savedPose.map((v,i)=>[i,v])));}
  });
@@ -79,6 +79,7 @@ export function createRoboLimbo(state:RobotState,view:View){
   }
  });
 }
+
 
 
 

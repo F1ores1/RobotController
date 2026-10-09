@@ -4,6 +4,17 @@ export function createGUI(state:RobotState){
  const list=document.querySelector<HTMLElement>('#axis-list')!;
  list.innerHTML=JOINTS.map((joint,i)=>`<div class="axis-row" data-axis="${i+1}"><span class="axis-icon" aria-hidden="true"></span><div class="axis-label"><label for="axis-${i+1}">${joint.name}</label></div><div class="angle-controls"><div class="angle-input-wrap"><input class="angle-input" id="axis-${i+1}" type="number" inputmode="decimal" min="${joint.min}" max="${joint.max}" step="any" value="0" aria-label="${joint.name} angle in degrees" autocomplete="off"/><span class="degree" aria-hidden="true">°</span></div><input class="angle-slider" type="range" min="${joint.min}" max="${joint.max}" step="any" value="0" aria-label="${joint.name} angle slider"/></div></div>`).join('');
  const rows=Array.from(list.querySelectorAll<HTMLElement>('.axis-row'));
+ const controller=document.querySelector<HTMLElement>('.controller')!;
+ const groups=document.createElement('div');
+ groups.className='axis-groups';groups.setAttribute('role','group');groups.setAttribute('aria-label','Visible axes');
+ groups.innerHTML='<button type="button" aria-pressed="true" aria-controls="axis-list">1–3</button><button type="button" aria-pressed="false" aria-controls="axis-list">4–6</button>';
+ document.querySelector('.panel-heading')!.append(groups);
+ const selectGroup=(second:boolean)=>{
+  controller.classList.toggle('show-wrist',second);
+  groups.querySelectorAll('button').forEach((button,i)=>button.setAttribute('aria-pressed',String(i===(second?1:0))));
+ };
+ groups.querySelectorAll('button').forEach((button,i)=>button.addEventListener('click',()=>selectGroup(i===1)));
+ document.querySelector('#robododge-toggle')!.addEventListener('click',()=>selectGroup(false));
  const announce=(text:string)=>{document.querySelector('#announcements')!.textContent=text;};
  rows.forEach((row,i)=>{
    const input=row.querySelector<HTMLInputElement>('input')!;
@@ -14,6 +25,4 @@ export function createGUI(state:RobotState){
    input.addEventListener('keydown',event=>{if(event.key==='Enter'){commit();input.blur();}if(event.key==='Escape'){input.value=format(state.values[i]);input.blur();}if(event.key==='ArrowUp'||event.key==='ArrowDown'){event.preventDefault();const current=commit();state.setJoint(i,current+(event.key==='ArrowUp'?1:-1));input.value=format(state.values[i]);}});
  });
  state.subscribe(values=>rows.forEach((row,i)=>{const input=row.querySelector<HTMLInputElement>('input')!;input.value=format(values[i]);const slider=row.querySelector<HTMLInputElement>('.angle-slider')!;slider.value=format(values[i]);slider.setAttribute('aria-valuetext',`${format(values[i])} degrees`);input.setAttribute('aria-valuenow',format(values[i]));}));
- const collapse=document.querySelector<HTMLButtonElement>('#collapse-button')!;
- collapse.addEventListener('click',()=>{const collapsed=document.querySelector('.controller')!.classList.toggle('is-collapsed');collapse.setAttribute('aria-expanded',String(!collapsed));collapse.querySelector('span')!.textContent=collapsed?'Expand':'Collapse';});
 }

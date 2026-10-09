@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 56" fill="none">
+ <defs><clipPath id="wall"><path d="M6 6h52v44h-8V14H14v20h16v16H6Z"/></clipPath></defs>
+ <g clip-path="url(#wall)">
+  <path fill="#f3c95e" d="M6 6h17.333v44H6z"/>
+  <path fill="#e69a4d" d="M23.333 6h17.334v44H23.333z"/>
+  <path fill="#a189ce" d="M40.667 6H58v44H40.667z"/>
+ </g>
+</svg>
