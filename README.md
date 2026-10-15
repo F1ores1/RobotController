@@ -86,3 +86,7 @@ RIG-NOTES.md          Rig, joint limit, and model identification notes
 ## Notes on the model
 
 The source CAD model matches the standard LR Mate 200iD (717 mm reach). That is a model identification only, not verification of any specific physical machine's options, mounting, payload, or tool clearance. Anything intended for a real robot would need separate validation.
+
+## Author
+
+Braden Fioresi: [linkedin.com/in/braden-fioresi](https://www.linkedin.com/in/braden-fioresi)
